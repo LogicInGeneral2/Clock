@@ -1,0 +1,4 @@
+/public/audio/pre-prayer.mp3
+/public/audio/prayer.mp3
+/public/audio/post-prayer.mp3
+/public/audio/hourly.mp3
