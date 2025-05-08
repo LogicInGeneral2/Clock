@@ -1,7 +1,7 @@
 // components/Clock/Clock.tsx
 "use client"
 
-import { playAudio } from "@/services/audio" // Assuming this is the correct import path
+import { playAudio } from "@/services/audio"
 import moment from "moment"
 import { useEffect, useState } from "react"
 
@@ -32,7 +32,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
         !darkMode ? "bg-white" : ""
       } p-7 text-center md:text-left md:w-100 rounded-md`}
     >
-      <time className="text-4xl md:text-7xl font-bold">
+      <time className="text-5xl md:text-8xl font-bold">
         {time.split("").map((char, i) => (
           <span
             key={i}

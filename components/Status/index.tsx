@@ -3,7 +3,7 @@ import { DailyPrayerTime } from "@/types/DailyPrayerTimeType"
 
 interface PrayerStatusProps {
   today: DailyPrayerTime
-  tomorrow?: DailyPrayerTime // Optional tomorrow prop for Fajr time
+  tomorrow?: DailyPrayerTime
 }
 
 export default function PrayerStatus({ today, tomorrow }: PrayerStatusProps) {
@@ -40,16 +40,16 @@ export default function PrayerStatus({ today, tomorrow }: PrayerStatusProps) {
           Current Prayer
         </h3>
 
-        <p className="text-5xl font-bold text-mosqueGreen">
+        <p className="text-6xl font-bold text-mosqueGreen">
           {currentPrayer.prayerName}
         </p>
-        <p className="text-4xl text-mosqueGreen mt-2">{currentPrayerTime}</p>
+        <p className="text-5xl text-mosqueGreen mt-2">{currentPrayerTime}</p>
       </div>
       {/* Upcoming Prayer Time */}
       <div className="flex-1 p-4 rounded-lg shadow-md border-2 border-w">
         <h3 className="text-xl font-semibold text-white">Next Prayer</h3>
-        <p className="text-5xl font-bold text-white">{nextPrayerName}</p>
-        <p className="text-3xl text-white mt-2">{nextPrayerTime}</p>
+        <p className="text-6xl font-bold text-white">{nextPrayerName}</p>
+        <p className="text-4xl text-white mt-2">{nextPrayerTime}</p>
       </div>
     </div>
   )
