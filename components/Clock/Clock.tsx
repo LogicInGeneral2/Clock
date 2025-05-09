@@ -19,12 +19,12 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
       const isOnTheHour =
         currentTime.minute() === 0 && currentTime.second() === 0
       if (isOnTheHour && hour >= 5 && hour <= 23) {
-        playAudio("../../public/audio/hourly.mp3")
+        playAudio("/audio/hourly.mp3")
       }
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [format])
+  }, [])
 
   return (
     <div
@@ -32,7 +32,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
         !darkMode ? "bg-white" : ""
       } p-7 text-center md:text-left md:w-100 rounded-md`}
     >
-      <time className="text-5xl md:text-8xl font-bold">
+      <time className="text-5xl md:text-[7rem] font-bold">
         {time.split("").map((char, i) => (
           <span
             key={i}

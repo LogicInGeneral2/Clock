@@ -46,9 +46,11 @@ export default async function Home() {
             <div className="p-4 md:p-6">
               <Date />
             </div>
+            {/* Prayer Times 
             <div className="p-4 md:p-6">
               <PrayerStatus today={today} />
             </div>
+            */}
           </div>
           <div className="p-4 md:p-6 md:col-span-3">
             <PrayerTimes today={today} tomorrow={tomorrow} />

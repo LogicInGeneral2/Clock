@@ -133,8 +133,8 @@ export default function PrayerTimes({
             key={prayer.label}
             className="
               text-center
-              [&>*]:p-4
-              md:[&>*]:p-8
+              [&>*]:p-3
+              md:[&>*]:p-6
               md:[&>*]:border md:[&>*]:border-b-0 [&>*]:border-mosqueGreen-dark
               md:[&>th]:w-20
               [&>th]:border-l-0
@@ -142,10 +142,10 @@ export default function PrayerTimes({
               border border-mosqueGreen-dark border-l-0 border-r-0
               last-of-type:border-b-0"
           >
-            <th className="text-left text-xl md:text-5xl md:text-right">
+            <th className="text-left text-xl md:text-6xl md:text-right">
               {prayer.label}
             </th>
-            <td className="font-bold text-xl md:text-5xl">
+            <td className="font-bold text-xl md:text-6xl">
               <span
                 className={
                   currentPrayerTime.prayerIndex === index
