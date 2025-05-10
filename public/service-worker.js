@@ -1,10 +1,22 @@
 const cacheName = "v1";
 const cacheAssets = [
-  "/audio/pre-prayer.mp3",
   "/audio/prayer.mp3",
-  "/audio/post-prayer.mp3",
-  "/audio/hourly.mp3",
-  // Add other static assets as needed
+  "/audio/prayer_fajr.mp3",
+  "/audio/1.mp3",
+  "/audio/2.mp3",
+  "/audio/3.mp3",
+  "/audio/4.mp3",
+  "/audio/5.mp3",
+  "/audio/6.mp3",
+  "/audio/7.mp3",
+  "/audio/8.mp3",
+  "/audio/fajr.mp3",
+  "/audio/zuhr.mp3",
+  "/audio/asr.mp3",
+  "/audio/maghrib.mp3",
+  "/audio/isha.mp3",
+  "/audio/everyday.mp3",
+  "/audio/friday.mp3",
 ];
 
 const installEvent = () => {

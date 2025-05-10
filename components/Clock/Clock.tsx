@@ -1,9 +1,8 @@
-// components/Clock/Clock.tsx
 "use client"
 
-import { playAudio } from "@/services/audio"
 import moment from "moment"
 import { useEffect, useState } from "react"
+import { playAudioWithPriority } from "@/services/audio"
 
 export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
   const format = "h:mm:ss A"
@@ -19,7 +18,8 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
       const isOnTheHour =
         currentTime.minute() === 0 && currentTime.second() === 0
       if (isOnTheHour && hour >= 5 && hour <= 23) {
-        playAudio("/audio/hourly.mp3")
+        const randomAudio = Math.floor(Math.random() * 8) + 1 // Random number 1-8
+        playAudioWithPriority(`/audio/${randomAudio}.mp3`, "hourly")
       }
     }, 1000)
 
