@@ -9,10 +9,10 @@ export default function Date() {
 
   return (
     <div className="text-white text-center md:text-left">
-      <p className="mt-7 font-bold text-5xl md:text-7xl">
+      <p className="mt-7 font-bold text-5xl md:text-6xl">
         {dayName} {englishDate}
       </p>
-      <p className="mt-5 md:mt-5 text-5xl md:text-7xl">{hijriDate}</p>
+      <p className="mt-5 md:mt-5 text-5xl md:text-6xl">{hijriDate}</p>
     </div>
   )
 }

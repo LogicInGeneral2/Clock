@@ -1,5 +1,6 @@
 import Clock from "@/components/Clock/Clock"
 import Date from "@/components/Date/Date"
+import FullscreenButton from "@/components/Fullscreen"
 import PrayerTimes from "@/components/PrayerTimes/PrayerTimes"
 import ServiceWorker from "@/components/ServiceWorker/ServiceWorker"
 import PrayerStatus from "@/components/Status"
@@ -37,7 +38,8 @@ export default async function Home() {
 
   return (
     <>
-      <main className="md:p-5">
+      <main className="md:p-5 relative">
+        <FullscreenButton />
         <div className="md:grid md:grid-cols-8">
           <div className="md:col-span-5">
             <div className="p-4 md:p-6">

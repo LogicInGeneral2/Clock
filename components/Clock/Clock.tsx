@@ -32,7 +32,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
         !darkMode ? "bg-white" : ""
       } p-7 text-center md:text-left md:w-100 rounded-md`}
     >
-      <time className="text-5xl md:text-[7rem] font-bold">
+      <time className="text-5xl md:text-[6rem] font-bold">
         {time.split("").map((char, i) => (
           <span
             key={i}
