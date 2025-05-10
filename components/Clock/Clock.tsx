@@ -18,7 +18,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
       const isOnTheHour =
         currentTime.minute() === 0 && currentTime.second() === 0
       if (isOnTheHour && hour >= 5 && hour <= 23) {
-        const randomAudio = Math.floor(Math.random() * 8) + 1 // Random number 1-8
+        const randomAudio = Math.floor(Math.random() * 7) + 1 // Random number 1-8
         playAudioWithPriority(`/audio/${randomAudio}.mp3`, "hourly")
       }
     }, 1000)
