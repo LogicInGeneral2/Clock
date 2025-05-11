@@ -104,7 +104,7 @@ export default function PrayerTimes({
         }
 
         // After prayer (5 minutes after)
-        const postPrayerTime = prayerTime.clone().add(5, "minutes")
+        const postPrayerTime = prayerTime.clone().add(60, "minutes")
         if (
           currentTime.isSame(postPrayerTime, "second") &&
           currentTime.isSame(postPrayerTime, "minute")
@@ -151,7 +151,7 @@ export default function PrayerTimes({
               border border-mosqueGreen-dark border-l-0 border-r-0
               last-of-type:border-b-0"
           >
-            <th className="text-left text-xl md:text-6xl md:text-right">
+            <th className="text-left text-xl md:text-5xl md:text-right">
               {prayer.label}
             </th>
             <td className="font-bold text-xl md:text-6xl">
