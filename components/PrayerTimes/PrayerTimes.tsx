@@ -80,7 +80,7 @@ export default function PrayerTimes({
         )
 
         // 15 minutes before prayer
-        const prePrayerTime = prayerTime.clone().subtract(15, "minutes")
+        const prePrayerTime = prayerTime.clone().subtract(20, "minutes")
         if (
           currentTime.isSame(prePrayerTime, "second") &&
           currentTime.isSame(prePrayerTime, "minute")
