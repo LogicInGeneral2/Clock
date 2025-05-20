@@ -71,7 +71,7 @@ export default function PrayerTimes({
     // Check for audio triggers every second
     const audioInterval = setInterval(() => {
       const currentTime = moment()
-      const isFriday = currentTime.day() === 5 // Friday for special post-prayer audio
+      const isFriday = currentTime.day() === 4 // Thursday for special post-prayer audio
 
       PrayerTimesArray.forEach((prayer, index) => {
         const prayerTime = inferMomentTime(
@@ -79,7 +79,7 @@ export default function PrayerTimes({
           index,
         )
 
-        // 15 minutes before prayer
+        // 20 minutes before prayer
         const prePrayerTime = prayerTime.clone().subtract(20, "minutes")
         if (
           currentTime.isSame(prePrayerTime, "second") &&

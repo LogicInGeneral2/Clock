@@ -13,6 +13,7 @@ let currentPriority: number = Infinity
 export const playAudioWithPriority = (
   audioPath: string,
   priority: AudioPriority,
+  volume: number = 1.0, // Default volume is 100%
 ) => {
   const newPriority = priorityOrder[priority]
 
@@ -30,6 +31,7 @@ export const playAudioWithPriority = (
 
   // Play new audio
   const audio = new Audio(audioPath)
+  audio.volume = Math.max(0, Math.min(1, volume)) // Ensure volume is between 0 and 1
   currentAudio = audio
   currentPriority = newPriority
 

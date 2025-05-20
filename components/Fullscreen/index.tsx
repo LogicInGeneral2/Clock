@@ -11,9 +11,13 @@ export default function FullscreenButton() {
       if (!isFullscreen) {
         await document.documentElement.requestFullscreen()
         setIsFullscreen(true)
+        // Add class to hide cursor
+        document.documentElement.classList.add("cursor-none")
       } else {
         await document.exitFullscreen()
         setIsFullscreen(false)
+        // Remove class to show cursor
+        document.documentElement.classList.remove("cursor-none")
       }
     } catch (error) {
       console.error("Error toggling fullscreen:", error)
@@ -23,13 +27,22 @@ export default function FullscreenButton() {
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      const isNowFullscreen = !!document.fullscreenElement
+      setIsFullscreen(isNowFullscreen)
+      // Update cursor visibility based on fullscreen state
+      if (isNowFullscreen) {
+        document.documentElement.classList.add("cursor-none")
+      } else {
+        document.documentElement.classList.remove("cursor-none")
+      }
     }
 
     document.addEventListener("fullscreenchange", handleFullscreenChange)
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      // Ensure cursor is restored on component unmount
+      document.documentElement.classList.remove("cursor-none")
     }
   }, [])
 

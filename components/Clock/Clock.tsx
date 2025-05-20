@@ -19,7 +19,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
         currentTime.minute() === 0 && currentTime.second() === 0
       if (isOnTheHour && hour >= 5 && hour <= 23) {
         const randomAudio = Math.floor(Math.random() * 7) + 1 // Random number 1-8
-        playAudioWithPriority(`/audio/${randomAudio}.mp3`, "hourly")
+        playAudioWithPriority(`/audio/${randomAudio}.mp3`, "hourly", 0.5)
       }
     }, 1000)
 
@@ -32,7 +32,7 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
         !darkMode ? "bg-white" : ""
       } p-7 text-center md:text-left md:w-100 rounded-md`}
     >
-      <time className="text-5xl md:text-[6rem] font-bold">
+      <time className="text-5xl md:text-[5rem] font-bold">
         {time.split("").map((char, i) => (
           <span
             key={i}
