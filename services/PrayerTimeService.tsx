@@ -1,8 +1,6 @@
 import { DailyPrayerTime } from "@/types/DailyPrayerTimeType"
 import moment from "moment"
 
-const blackoutPeriod = process.env.BLACKOUT_PERIOD ?? 13 // defaults to 13 minutes
-
 // Helper function to infer AM/PM based on prayer type
 function inferMomentTime(time: string, prayerIndex: number): moment.Moment {
   const parsedTime = moment(time, ["h:mm", "hh:mm"])
@@ -16,33 +14,6 @@ function inferMomentTime(time: string, prayerIndex: number): moment.Moment {
     // Zuhr, Asr, Maghrib, Isha: Assume PM (midday to evening)
     return parsedTime.hour() < 12 ? parsedTime.add(12, "hours") : parsedTime
   }
-}
-
-export function isBlackout(prayerTimes: DailyPrayerTime) {
-  const currentTime = moment()
-  const congregationTimes = [
-    prayerTimes.fajr.congregation_start,
-    prayerTimes.zuhr.congregation_start,
-    prayerTimes.asr.congregation_start,
-    prayerTimes.maghrib.congregation_start,
-    prayerTimes.isha.congregation_start,
-  ]
-
-  let setBlackoutMode = false
-
-  congregationTimes.forEach((time, index) => {
-    const prayerTime = inferMomentTime(time, index)
-    if (
-      currentTime.isSameOrAfter(prayerTime) &&
-      currentTime.isSameOrBefore(
-        prayerTime.clone().add(blackoutPeriod, "minutes"),
-      )
-    ) {
-      setBlackoutMode = true
-    }
-  })
-
-  return setBlackoutMode
 }
 
 export function getNextPrayer(today: DailyPrayerTime) {

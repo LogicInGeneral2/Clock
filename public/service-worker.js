@@ -1,5 +1,10 @@
 const cacheName = "v1";
 const cacheAssets = [
+  // ... main static files
+  "/",
+  "/index.html",
+  "/manifest.json",
+  // ... other audio files
   "/audio/prayer.mp3",
   "/audio/prayer_fajr.mp3",
   "/audio/1.mp3",
@@ -17,6 +22,14 @@ const cacheAssets = [
   "/audio/isha.mp3",
   "/audio/everyday.mp3",
   "/audio/friday.mp3",
+  // ... next js files
+  "/_next/static/chunks/main.js",
+  "/_next/static/chunks/webpack.js",
+  "/_next/static/chunks/framework.js",
+  "/_next/static/chunks/commons.js",
+  "/_next/static/chunks/pages/index.js",
+  "/_next/static/css/main.css",
+  "/offline-prayer-times.json",
 ];
 
 const installEvent = () => {
@@ -36,7 +49,18 @@ installEvent();
 const activateEvent = () => {
   self.addEventListener("activate", (event) => {
     console.log("Service worker activated");
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((name) => {
+            if (name !== cacheName) {
+              console.log(`Deleting old cache: ${name}`);
+              return caches.delete(name);
+            }
+          })
+        );
+      }).then(() => self.clients.claim())
+    );
   });
 };
 activateEvent();
