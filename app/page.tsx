@@ -1,5 +1,4 @@
-// page.tsx
-import dynamic from "next/dynamic"
+import Clock from "@/components/Clock/Clock"
 import Date from "@/components/Date/Date"
 import FullscreenButton from "@/components/Fullscreen"
 import PrayerTimes from "@/components/PrayerTimes/PrayerTimes"
@@ -19,9 +18,6 @@ import type {
 import type { JummahTimes } from "@/types/JummahTimesType"
 import type { MosqueMetadataType } from "@/types/MosqueDataType"
 import type { Metadata } from "next"
-
-// Dynamically import Clock with SSR disabled
-const Clock = dynamic(() => import("@/components/Clock/Clock"), { ssr: false })
 
 export async function generateMetadata(): Promise<Metadata> {
   const mosqueMetadata: MosqueMetadataType = await getMetaData()
