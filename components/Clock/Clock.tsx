@@ -2,7 +2,11 @@
 
 import moment from "moment"
 import { useEffect, useState } from "react"
-import { playAudioWithPriority } from "@/services/audio"
+import {
+  cleanupAudio,
+  playAudioWithPriority,
+  preloadAudioFiles,
+} from "@/services/audio"
 
 export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
   const format = "h:mm:ss A"
@@ -12,18 +16,18 @@ export default function Clock({ darkMode = false }: { darkMode?: boolean }) {
     const interval = setInterval(() => {
       const currentTime = moment()
       setTime(currentTime.format(format))
-
-      // Check for hourly audio (5 AM to 11 PM)
       const hour = currentTime.hour()
       const isOnTheHour =
         currentTime.minute() === 0 && currentTime.second() === 0
       if (isOnTheHour && hour >= 5 && hour <= 23) {
-        const randomAudio = Math.floor(Math.random() * 7) + 1 // Random number 1-8
+        const randomAudio = Math.floor(Math.random() * 8) + 1 // Fixed range
         playAudioWithPriority(`/audio/${randomAudio}.mp3`, "hourly", 0.5)
       }
     }, 1000)
-
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      cleanupAudio()
+    }
   }, [])
 
   return (

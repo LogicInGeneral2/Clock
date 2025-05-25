@@ -4,7 +4,11 @@ import { useEffect, useState } from "react"
 import { getCurrentPrayer, getNextPrayer } from "@/services/PrayerTimeService"
 import { DailyPrayerTime } from "@/types/DailyPrayerTimeType"
 import moment from "moment"
-import { playAudioWithPriority } from "@/services/audio"
+import {
+  cleanupAudio,
+  playAudioWithPriority,
+  preloadAudioFiles,
+} from "@/services/audio"
 
 export default function PrayerTimes({
   today,
@@ -63,51 +67,38 @@ export default function PrayerTimes({
   }
 
   useEffect(() => {
-    // Update current prayer every minute
     const prayerInterval = setInterval(() => {
       setCurrentPrayerTime(getCurrentPrayer(today))
     }, 60 * 1000)
 
-    // Check for audio triggers every second
     const audioInterval = setInterval(() => {
       const currentTime = moment()
-      const isFriday = currentTime.day() === 4 // Thursday for special post-prayer audio
-
+      const isFriday = currentTime.day() === 5 // Fixed to Friday
       PrayerTimesArray.forEach((prayer, index) => {
         const prayerTime = inferMomentTime(
           prayer.data.congregation_start,
           index,
         )
-
-        // 20 minutes before prayer
-        const prePrayerTime = prayerTime.clone().subtract(20, "minutes")
         if (
-          currentTime.isSame(prePrayerTime, "second") &&
-          currentTime.isSame(prePrayerTime, "minute")
+          currentTime.isSame(
+            prayerTime.clone().subtract(20, "minutes"),
+            "second",
+          )
         ) {
           playAudioWithPriority(
             `/audio/${prayer.label.toLowerCase()}.mp3`,
             "prePrayer",
           )
         }
-
-        // At prayer time
-        if (
-          currentTime.isSame(prayerTime, "second") &&
-          currentTime.isSame(prayerTime, "minute")
-        ) {
+        if (currentTime.isSame(prayerTime, "second")) {
           const audioPath =
             prayer.label === "Fajr"
               ? "/audio/prayer_fajr.mp3"
               : "/audio/prayer.mp3"
           playAudioWithPriority(audioPath, "prayer")
         }
-
-        // After prayer (5 minutes after)
-        const postPrayerTime = prayerTime.clone().add(60, "minutes")
         if (
-          currentTime.isSame(postPrayerTime, "second") &&
-          currentTime.isSame(postPrayerTime, "minute")
+          currentTime.isSame(prayerTime.clone().add(60, "minutes"), "second")
         ) {
           const audioPath =
             prayer.label === "Isha"
@@ -125,6 +116,7 @@ export default function PrayerTimes({
     return () => {
       clearInterval(prayerInterval)
       clearInterval(audioInterval)
+      cleanupAudio()
     }
   }, [today])
 

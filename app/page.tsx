@@ -4,6 +4,7 @@ import FullscreenButton from "@/components/Fullscreen"
 import PrayerTimes from "@/components/PrayerTimes/PrayerTimes"
 import ServiceWorker from "@/components/ServiceWorker/ServiceWorker"
 import PrayerStatus from "@/components/Status"
+import { preloadAudioFiles } from "@/services/audio"
 import {
   getJummahTimes,
   getMetaData,
@@ -34,6 +35,26 @@ export default async function Home() {
   const mosqueMetadata: MosqueMetadataType = await getMetaData()
   const upcomingPrayerDays: UpcomingPrayerTimes[] =
     await getPrayerTimesForUpcomingDays()
+
+  preloadAudioFiles([
+    "/audio/1.mp3",
+    "/audio/2.mp3",
+    "/audio/3.mp3",
+    "/audio/4.mp3",
+    "/audio/5.mp3",
+    "/audio/6.mp3",
+    "/audio/7.mp3",
+    "/audio/8.mp3",
+    "/audio/prayer.mp3",
+    "/audio/prayer_fajr.mp3",
+    "/audio/friday.mp3",
+    "/audio/everyday.mp3",
+    "/audio/fajr.mp3",
+    "/audio/zuhr.mp3",
+    "/audio/asr.mp3",
+    "/audio/maghrib.mp3",
+    "/audio/isha.mp3",
+  ])
 
   return (
     <>
