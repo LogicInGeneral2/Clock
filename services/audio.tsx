@@ -2,7 +2,6 @@ import { Howl, Howler } from "howler"
 
 export type AudioPriority = "prayer" | "prePrayer" | "postPrayer" | "hourly"
 
-// Define priority order (lower number = higher priority)
 const priorityOrder: Record<AudioPriority, number> = {
   prayer: 1,
   prePrayer: 2,
@@ -10,13 +9,11 @@ const priorityOrder: Record<AudioPriority, number> = {
   hourly: 4,
 }
 
-// Store preloaded Howl instances
 let audioCache: Record<string, Howl> = {}
 let currentHowl: Howl | null = null
 let currentPriority: number = Infinity
-let silentLoop: Howl | null = null // For silent loop
+let silentLoop: Howl | null = null
 
-// Preload audio files
 export const preloadAudioFiles = (audioPaths: string[]): void => {
   if (!Array.isArray(audioPaths)) {
     console.error("preloadAudioFiles: audioPaths must be an array")
@@ -42,15 +39,14 @@ export const preloadAudioFiles = (audioPaths: string[]): void => {
   })
 }
 
-// Keep audio context alive with a silent loop
 export const keepAudioContextAlive = (): Howl => {
   if (silentLoop) {
-    return silentLoop // Return existing loop if already running
+    return silentLoop
   }
   silentLoop = new Howl({
     src: ["/audio/silent.mp3"],
     loop: true,
-    volume: 0, // Inaudible
+    volume: 0,
     format: ["mp3"],
     onloaderror: (id, error) => {
       console.error("Failed to load silent audio:", error)
@@ -58,16 +54,36 @@ export const keepAudioContextAlive = (): Howl => {
     },
   })
   silentLoop.play()
+  monitorAudioContext()
   return silentLoop
 }
 
-// Play audio with priority
+export const monitorAudioContext = (): (() => void) => {
+  const checkInterval = setInterval(() => {
+    const audioContext = Howler.ctx
+    console.log("AudioContext state:", audioContext.state)
+    if (audioContext.state === "suspended") {
+      audioContext
+        .resume()
+        .then(() => {
+          console.log("AudioContext resumed")
+          if (silentLoop && !silentLoop.playing()) {
+            silentLoop.play()
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to resume AudioContext:", error)
+        })
+    }
+  }, 60 * 1000)
+  return () => clearInterval(checkInterval)
+}
+
 export const playAudioWithPriority = (
   audioPath: string,
   priority: AudioPriority,
   volume: number = 1.0,
 ): void => {
-  // Validate inputs
   if (typeof audioPath !== "string" || audioPath.trim() === "") {
     console.error("playAudioWithPriority: Invalid audioPath")
     return
@@ -83,7 +99,6 @@ export const playAudioWithPriority = (
 
   const newPriority = priorityOrder[priority]
 
-  // Skip if a higher or equal priority audio is playing (excluding silent loop)
   if (
     currentHowl?.playing() &&
     currentPriority <= newPriority &&
@@ -92,14 +107,12 @@ export const playAudioWithPriority = (
     return
   }
 
-  // Stop current audio (excluding silent loop)
   if (currentHowl && currentHowl !== silentLoop) {
     currentHowl.stop()
     currentHowl.off("end")
     currentHowl = null
   }
 
-  // Ensure audio is preloaded or create new Howl
   if (!audioCache[audioPath]) {
     audioCache[audioPath] = new Howl({
       src: [audioPath],
@@ -108,7 +121,6 @@ export const playAudioWithPriority = (
     })
   }
 
-  // Play new audio
   currentHowl = audioCache[audioPath]
   currentHowl.volume(Math.max(0, Math.min(1, volume)))
   currentPriority = newPriority
@@ -128,7 +140,6 @@ export const playAudioWithPriority = (
   })
 }
 
-// Clean up all audio resources
 export const cleanupAudio = (): void => {
   Object.keys(audioCache).forEach((key) => {
     audioCache[key].stop()
