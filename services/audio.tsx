@@ -14,6 +14,7 @@ const priorityOrder: Record<AudioPriority, number> = {
 let audioCache: Record<string, Howl> = {}
 let currentHowl: Howl | null = null
 let currentPriority: number = Infinity
+let silentLoop: Howl | null = null // For silent loop
 
 // Preload audio files
 export const preloadAudioFiles = (audioPaths: string[]): void => {
@@ -41,6 +42,26 @@ export const preloadAudioFiles = (audioPaths: string[]): void => {
   })
 }
 
+// Keep audio context alive with a silent loop
+export const keepAudioContextAlive = (): Howl => {
+  if (silentLoop) {
+    return silentLoop // Return existing loop if already running
+  }
+  silentLoop = new Howl({
+    src: ["/audio/silent.mp3"],
+    loop: true,
+    volume: 0, // Inaudible
+    format: ["mp3"],
+    onloaderror: (id, error) => {
+      console.error("Failed to load silent audio:", error)
+      silentLoop = null
+    },
+  })
+  silentLoop.play()
+  return silentLoop
+}
+
+// Play audio with priority
 export const playAudioWithPriority = (
   audioPath: string,
   priority: AudioPriority,
@@ -62,15 +83,19 @@ export const playAudioWithPriority = (
 
   const newPriority = priorityOrder[priority]
 
-  // Skip if a higher or equal priority audio is playing
-  if (currentHowl?.playing() && currentPriority <= newPriority) {
+  // Skip if a higher or equal priority audio is playing (excluding silent loop)
+  if (
+    currentHowl?.playing() &&
+    currentPriority <= newPriority &&
+    currentHowl !== silentLoop
+  ) {
     return
   }
 
-  // Stop current audio
-  if (currentHowl) {
+  // Stop current audio (excluding silent loop)
+  if (currentHowl && currentHowl !== silentLoop) {
     currentHowl.stop()
-    currentHowl.off("end") // Clear previous end event listeners
+    currentHowl.off("end")
     currentHowl = null
   }
 
@@ -103,13 +128,18 @@ export const playAudioWithPriority = (
   })
 }
 
-// Clean up all audio resources (optional utility)
+// Clean up all audio resources
 export const cleanupAudio = (): void => {
   Object.keys(audioCache).forEach((key) => {
     audioCache[key].stop()
     audioCache[key].unload()
     delete audioCache[key]
   })
+  if (silentLoop) {
+    silentLoop.stop()
+    silentLoop.unload()
+    silentLoop = null
+  }
   currentHowl?.stop()
   currentHowl = null
   currentPriority = Infinity

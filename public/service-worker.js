@@ -5,6 +5,7 @@ const cacheAssets = [
   "/index.html",
   "/manifest.json",
   // ... other audio files
+  "/audio/silent.mp3",
   "/audio/prayer.mp3",
   "/audio/prayer_fajr.mp3",
   "/audio/1.mp3",

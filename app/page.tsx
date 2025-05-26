@@ -36,7 +36,9 @@ export default async function Home() {
   const upcomingPrayerDays: UpcomingPrayerTimes[] =
     await getPrayerTimesForUpcomingDays()
 
+  // Preload audio files, including silent.mp3
   preloadAudioFiles([
+    "/audio/silent.mp3", // Add silent audio
     "/audio/1.mp3",
     "/audio/2.mp3",
     "/audio/3.mp3",

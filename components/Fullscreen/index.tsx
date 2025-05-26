@@ -1,26 +1,52 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { Howl } from "howler"
+import { keepAudioContextAlive } from "@/services/audio"
 
 export default function FullscreenButton() {
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isAudioInitialized, setIsAudioInitialized] = useState(
+    typeof window !== "undefined" &&
+      localStorage.getItem("audioInitialized") === "true",
+  )
 
-  // Handle fullscreen toggle
+  // Handle fullscreen toggle and audio initialization
   const toggleFullscreen = async () => {
     try {
       if (!isFullscreen) {
         await document.documentElement.requestFullscreen()
         setIsFullscreen(true)
-        // Add class to hide cursor
         document.documentElement.classList.add("cursor-none")
       } else {
         await document.exitFullscreen()
         setIsFullscreen(false)
-        // Remove class to show cursor
         document.documentElement.classList.remove("cursor-none")
       }
+
+      // Initialize audio on first interaction
+      if (!isAudioInitialized) {
+        const silentAudio = new Howl({
+          src: ["/audio/silent.mp3"],
+          volume: 0,
+          format: ["mp3"],
+          onloaderror: (id, error) => {
+            console.error(
+              "Failed to load silent audio for initialization:",
+              error,
+            )
+          },
+          onplay: () => {
+            setIsAudioInitialized(true)
+            localStorage.setItem("audioInitialized", "true")
+            // Start silent loop to keep audio context alive
+            keepAudioContextAlive()
+          },
+        })
+        silentAudio.play()
+      }
     } catch (error) {
-      console.error("Error toggling fullscreen:", error)
+      console.error("Error toggling fullscreen or initializing audio:", error)
     }
   }
 
@@ -29,7 +55,6 @@ export default function FullscreenButton() {
     const handleFullscreenChange = () => {
       const isNowFullscreen = !!document.fullscreenElement
       setIsFullscreen(isNowFullscreen)
-      // Update cursor visibility based on fullscreen state
       if (isNowFullscreen) {
         document.documentElement.classList.add("cursor-none")
       } else {
@@ -41,7 +66,6 @@ export default function FullscreenButton() {
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange)
-      // Ensure cursor is restored on component unmount
       document.documentElement.classList.remove("cursor-none")
     }
   }, [])
