@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { getCurrentPrayer, getNextPrayer } from "@/services/PrayerTimeService"
 import { DailyPrayerTime } from "@/types/DailyPrayerTimeType"
 import moment from "moment"
@@ -49,6 +49,10 @@ export default function PrayerTimes({
     getCurrentPrayer(today),
   )
 
+  const prayerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastTriggeredRef = useRef<Set<string>>(new Set())
+
   // Helper function to infer moment time (from PrayerTimeService)
   const inferMomentTime = (
     time: string,
@@ -66,59 +70,156 @@ export default function PrayerTimes({
     }
   }
 
+  // Create unique key for prayer timing to prevent duplicate triggers
+  const createTimingKey = (
+    prayerLabel: string,
+    type: string,
+    time: moment.Moment,
+  ): string => {
+    return `${prayerLabel}-${type}-${time.format("YYYY-MM-DD-HH-mm-ss")}`
+  }
+
   useEffect(() => {
-    const prayerInterval = setInterval(() => {
+    console.log("Setting up prayer time monitoring...")
+
+    // Clear existing intervals
+    if (prayerIntervalRef.current) clearInterval(prayerIntervalRef.current)
+    if (audioIntervalRef.current) clearInterval(audioIntervalRef.current)
+
+    // Reset triggered events for new day
+    lastTriggeredRef.current.clear()
+
+    prayerIntervalRef.current = setInterval(() => {
       setCurrentPrayerTime(getCurrentPrayer(today))
     }, 60 * 1000)
 
-    const audioInterval = setInterval(() => {
+    audioIntervalRef.current = setInterval(() => {
       const currentTime = moment()
-      const isFriday = currentTime.day() === 5 // Fixed to Friday
+      const isFriday = currentTime.day() === 5
+
       PrayerTimesArray.forEach((prayer, index) => {
-        const prayerTime = inferMomentTime(
-          prayer.data.congregation_start,
-          index,
-        )
-        if (
-          currentTime.isSame(
-            prayerTime.clone().subtract(20, "minutes"),
-            "second",
+        try {
+          const prayerTime = inferMomentTime(
+            prayer.data.congregation_start,
+            index,
           )
-        ) {
-          playAudioWithPriority(
-            `/audio/${prayer.label.toLowerCase()}.mp3`,
-            "prePrayer",
+
+          // 20 minutes before prayer
+          const prePrayerTime = prayerTime.clone().subtract(20, "minutes")
+          const prePrayerKey = createTimingKey(
+            prayer.label,
+            "pre",
+            prePrayerTime,
           )
-        }
-        if (currentTime.isSame(prayerTime, "second")) {
-          const audioPath =
-            prayer.label === "Fajr"
-              ? "/audio/prayer_fajr.mp3"
-              : "/audio/prayer.mp3"
-          playAudioWithPriority(audioPath, "prayer")
-        }
-        if (
-          currentTime.isSame(prayerTime.clone().add(60, "minutes"), "second")
-        ) {
-          const audioPath =
-            prayer.label === "Isha"
-              ? isFriday
+
+          if (
+            currentTime.isSame(prePrayerTime, "second") &&
+            !lastTriggeredRef.current.has(prePrayerKey)
+          ) {
+            console.log(`Pre-prayer audio triggered for ${prayer.label}`)
+            lastTriggeredRef.current.add(prePrayerKey)
+            playAudioWithPriority(
+              `/audio/${prayer.label.toLowerCase()}.mp3`,
+              "prePrayer",
+            ).catch((error) => {
+              console.error(
+                `Failed to play pre-prayer audio for ${prayer.label}:`,
+                error,
+              )
+            })
+          }
+
+          // At prayer time
+          const prayerKey = createTimingKey(prayer.label, "main", prayerTime)
+
+          if (
+            currentTime.isSame(prayerTime, "second") &&
+            !lastTriggeredRef.current.has(prayerKey)
+          ) {
+            console.log(`Prayer audio triggered for ${prayer.label}`)
+            lastTriggeredRef.current.add(prayerKey)
+            const audioPath =
+              prayer.label === "Fajr"
+                ? "/audio/prayer_fajr.mp3"
+                : "/audio/prayer.mp3"
+            playAudioWithPriority(audioPath, "prayer").catch((error) => {
+              console.error(
+                `Failed to play prayer audio for ${prayer.label}:`,
+                error,
+              )
+            })
+          }
+
+          // 60 minutes after prayer (for Isha only)
+          if (prayer.label === "Isha") {
+            const postPrayerTime = prayerTime.clone().add(60, "minutes")
+            const postPrayerKey = createTimingKey(
+              prayer.label,
+              "post",
+              postPrayerTime,
+            )
+
+            if (
+              currentTime.isSame(postPrayerTime, "second") &&
+              !lastTriggeredRef.current.has(postPrayerKey)
+            ) {
+              console.log(
+                `Post-prayer audio triggered for ${prayer.label} (${
+                  isFriday ? "Friday" : "Everyday"
+                })`,
+              )
+              lastTriggeredRef.current.add(postPrayerKey)
+              const audioPath = isFriday
                 ? "/audio/friday.mp3"
                 : "/audio/everyday.mp3"
-              : null
-          if (audioPath) {
-            playAudioWithPriority(audioPath, "postPrayer")
+              playAudioWithPriority(audioPath, "postPrayer").catch((error) => {
+                console.error(
+                  `Failed to play post-prayer audio for ${prayer.label}:`,
+                  error,
+                )
+              })
+            }
           }
+        } catch (error) {
+          console.error(
+            `Error processing prayer time for ${prayer.label}:`,
+            error,
+          )
         }
       })
+
+      // Cleanup old triggered events (older than 2 minutes)
+      const cutoffTime = currentTime.clone().subtract(2, "minutes")
+      const keysToRemove = Array.from(lastTriggeredRef.current).filter(
+        (key) => {
+          const parts = key.split("-")
+          if (parts.length >= 6) {
+            const keyTime = moment(
+              `${parts[2]}-${parts[3]}-${parts[4]} ${parts[5]}:${parts[6]}:${parts[7]}`,
+              "YYYY-MM-DD HH:mm:ss",
+            )
+            return keyTime.isBefore(cutoffTime)
+          }
+          return false
+        },
+      )
+
+      keysToRemove.forEach((key) => lastTriggeredRef.current.delete(key))
     }, 1000)
 
     return () => {
-      clearInterval(prayerInterval)
-      clearInterval(audioInterval)
+      console.log("Cleaning up prayer time monitoring...")
+      if (prayerIntervalRef.current) {
+        clearInterval(prayerIntervalRef.current)
+        prayerIntervalRef.current = null
+      }
+      if (audioIntervalRef.current) {
+        clearInterval(audioIntervalRef.current)
+        audioIntervalRef.current = null
+      }
       cleanupAudio()
     }
-  }, [today])
+  }, [today]) // Re-setup when today's prayer times change
 
   return (
     <table className="text-white mx-auto table-auto border-collapse border-none w-full">

@@ -1,17 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Howl } from "howler"
 import { keepAudioContextAlive } from "@/services/audio"
 
 export default function FullscreenButton() {
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [isAudioInitialized, setIsAudioInitialized] = useState(
-    typeof window !== "undefined" &&
-      localStorage.getItem("audioInitialized") === "true",
-  )
+  const [isAudioInitialized, setIsAudioInitialized] = useState(false)
 
-  // Handle fullscreen toggle and audio initialization
+  // Check localStorage on client side only
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const audioInit = localStorage.getItem("audioInitialized") === "true"
+      setIsAudioInitialized(audioInit)
+
+      // If audio was previously initialized, restart the audio system
+      if (audioInit) {
+        console.log("Audio was previously initialized, restarting...")
+        keepAudioContextAlive()
+      }
+    }
+  }, [])
+
+  // Enhanced fullscreen and audio initialization
   const toggleFullscreen = async () => {
     try {
       if (!isFullscreen) {
@@ -24,58 +34,100 @@ export default function FullscreenButton() {
         document.documentElement.classList.remove("cursor-none")
       }
 
-      // Initialize audio on first interaction
+      // Enhanced audio initialization on first interaction
       if (!isAudioInitialized) {
-        const silentAudio = new Howl({
-          src: ["/audio/silent.mp3"],
-          volume: 0,
-          format: ["mp3"],
-          onloaderror: (id, error) => {
-            console.error(
-              "Failed to load silent audio for initialization:",
-              error,
-            )
-          },
-          onplay: () => {
-            setIsAudioInitialized(true)
+        console.log(
+          "First user interaction detected, initializing audio system...",
+        )
+
+        try {
+          keepAudioContextAlive()
+          setIsAudioInitialized(true)
+
+          if (typeof window !== "undefined") {
             localStorage.setItem("audioInitialized", "true")
-            // Start silent loop to keep audio context alive
-            keepAudioContextAlive()
-          },
-        })
-        silentAudio.play()
+          }
+
+          console.log("Audio system initialized successfully")
+        } catch (audioError) {
+          console.error("Failed to initialize audio system:", audioError)
+        }
       }
     } catch (error) {
-      console.error("Error toggling fullscreen or initializing audio:", error)
+      console.error("Error toggling fullscreen:", error)
     }
   }
 
-  // Listen for fullscreen changes
+  // Enhanced fullscreen change handler
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isNowFullscreen = !!document.fullscreenElement
       setIsFullscreen(isNowFullscreen)
+
       if (isNowFullscreen) {
         document.documentElement.classList.add("cursor-none")
+        console.log("Entered fullscreen mode")
       } else {
         document.documentElement.classList.remove("cursor-none")
+        console.log("Exited fullscreen mode")
       }
     }
 
+    const handleFullscreenError = (event: Event) => {
+      console.error("Fullscreen error:", event)
+    }
+
     document.addEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener("fullscreenerror", handleFullscreenError)
 
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      document.removeEventListener("fullscreenerror", handleFullscreenError)
       document.documentElement.classList.remove("cursor-none")
     }
   }, [])
 
+  // Add click handler for any interaction to initialize audio
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+
+    // Initialize audio on any click if not already initialized
+    if (!isAudioInitialized) {
+      console.log("User interaction detected, initializing audio...")
+      try {
+        keepAudioContextAlive()
+        setIsAudioInitialized(true)
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem("audioInitialized", "true")
+        }
+      } catch (error) {
+        console.error("Failed to initialize audio on click:", error)
+      }
+    }
+
+    toggleFullscreen()
+  }
+
   return (
     <button
-      onClick={toggleFullscreen}
+      onClick={handleClick}
       className="absolute top-4 right-4 p-2 bg-mosqueGreen text-white rounded-md hover:bg-mosqueGreen-dark transition-colors z-10"
       aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      title={
+        !isAudioInitialized
+          ? "Click to enable audio and toggle fullscreen"
+          : isFullscreen
+          ? "Exit fullscreen"
+          : "Enter fullscreen"
+      }
     >
+      {!isAudioInitialized && (
+        <div
+          className="absolute -top-2 -right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse"
+          title="Audio not initialized - click to enable"
+        />
+      )}
       {isFullscreen ? (
         <svg
           className="w-6 h-6"
