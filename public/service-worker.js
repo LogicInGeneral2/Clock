@@ -33,6 +33,8 @@ const cacheAssets = [
   "/offline-prayer-times.json",
 ];
 
+let isOffline = false;
+
 const installEvent = () => {
   self.addEventListener("install", (event) => {
     event.waitUntil(
@@ -66,6 +68,7 @@ const activateEvent = () => {
 };
 activateEvent();
 
+// Enhanced fetch event with connection monitoring
 const fetchEvent = () => {
   self.addEventListener("fetch", (e) => {
     e.respondWith(
@@ -74,21 +77,36 @@ const fetchEvent = () => {
         if (cachedResponse) {
           return cachedResponse;
         }
+        
         // Fetch from network and cache dynamically
         return fetch(e.request)
           .then((response) => {
+            // Connection restored
+            if (isOffline) {
+              isOffline = false;
+              console.log("Connection restored, notifying clients");
+              notifyClientsOfConnection();
+            }
+            
             // Only cache valid responses
             if (!response || response.status !== 200 || response.type !== "basic") {
               return response;
             }
+            
             const responseClone = response.clone();
             caches.open(cacheName).then((cache) => {
               cache.put(e.request, responseClone);
             });
             return response;
           })
-          .catch(() => {
-            // Fallback for offline scenarios (optional, can be empty for audio files)
+          .catch((error) => {
+            // Connection lost
+            if (!isOffline) {
+              isOffline = true;
+              console.log("Connection lost");
+            }
+            
+            // Fallback for offline scenarios
             return caches.match(e.request);
           });
       })
@@ -96,3 +114,35 @@ const fetchEvent = () => {
   });
 };
 fetchEvent();
+
+// Function to notify all clients about connection restoration
+function notifyClientsOfConnection() {
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'CONNECTION_RESTORED',
+        timestamp: Date.now()
+      });
+    });
+  });
+}
+
+// Listen for messages from clients
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CHECK_CONNECTION') {
+    // Test network connectivity
+    fetch('/favicon.ico', { method: 'HEAD', cache: 'no-cache' })
+      .then(() => {
+        event.source.postMessage({
+          type: 'CONNECTION_STATUS',
+          online: true
+        });
+      })
+      .catch(() => {
+        event.source.postMessage({
+          type: 'CONNECTION_STATUS',
+          online: false
+        });
+      });
+  }
+});

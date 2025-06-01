@@ -16,6 +16,7 @@ let silentLoop: Howl | null = null
 let contextMonitorInterval: NodeJS.Timeout | null = null
 let heartbeatInterval: NodeJS.Timeout | null = null
 let isAudioEnabled = false
+let audioQueue: { path: string; priority: AudioPriority; volume: number }[] = []
 
 // Enhanced audio context management
 const ensureAudioContext = async (): Promise<boolean> => {
@@ -26,20 +27,21 @@ const ensureAudioContext = async (): Promise<boolean> => {
       console.log("Attempting to resume suspended AudioContext...")
       await audioContext.resume()
 
-      // If resume fails, try creating a new audio context
       if (audioContext.state === "suspended") {
         console.log(
           "AudioContext still suspended, attempting alternative approach...",
         )
-        // Force a new audio context by playing and stopping a sound
+        // Use a very short silent audio instead of 1-minute one
         const testHowl = new Howl({
           src: ["/audio/silent.mp3"],
           volume: 0,
           format: ["mp3"],
         })
         testHowl.play()
-        testHowl.stop()
-        testHowl.unload()
+        setTimeout(() => {
+          testHowl.stop()
+          testHowl.unload()
+        }, 100)
 
         await audioContext.resume()
       }
@@ -71,7 +73,7 @@ export const monitorAudioContext = (): (() => void) => {
         silentLoop.play()
       }
     }
-  }, 30 * 1000) // Check every 30 seconds instead of 60
+  }, 30 * 1000)
 
   return () => {
     if (contextMonitorInterval) {
@@ -81,7 +83,7 @@ export const monitorAudioContext = (): (() => void) => {
   }
 }
 
-// Audio heartbeat to prevent suspension
+// Improved audio heartbeat with shorter duration
 const startAudioHeartbeat = (): void => {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval)
@@ -93,7 +95,7 @@ const startAudioHeartbeat = (): void => {
     try {
       const audioContext = Howler.ctx
 
-      // Create a very short, silent audio pulse
+      // Create a very short, silent audio pulse (should be 1-3 seconds max)
       const heartbeat = new Howl({
         src: ["/audio/silent.mp3"],
         volume: 0,
@@ -105,17 +107,17 @@ const startAudioHeartbeat = (): void => {
 
       const playId = heartbeat.play()
 
-      // Stop immediately to minimize any potential interference
+      // Stop after 3 seconds maximum (adjust based on your silent.mp3 duration)
       setTimeout(() => {
         heartbeat.stop(playId)
         heartbeat.unload()
-      }, 50)
+      }, 3000)
 
       console.log("Audio heartbeat sent, context state:", audioContext.state)
     } catch (error) {
       console.error("Audio heartbeat failed:", error)
     }
-  }, 5 * 60 * 1000) // Every 5 minutes
+  }, 5 * 60 * 1000)
 }
 
 export const preloadAudioFiles = (audioPaths: string[]): void => {
@@ -151,6 +153,7 @@ export const keepAudioContextAlive = (): Howl => {
     silentLoop.unload()
   }
 
+  // Use a shorter silent audio file (1-3 seconds recommended)
   silentLoop = new Howl({
     src: ["/audio/silent.mp3"],
     loop: true,
@@ -176,6 +179,16 @@ export const keepAudioContextAlive = (): Howl => {
   return silentLoop
 }
 
+// Process audio queue
+const processAudioQueue = (): void => {
+  if (audioQueue.length === 0) return
+
+  const nextAudio = audioQueue.shift()
+  if (nextAudio) {
+    playAudioWithPriority(nextAudio.path, nextAudio.priority, nextAudio.volume)
+  }
+}
+
 export const playAudioWithPriority = async (
   audioPath: string,
   priority: AudioPriority,
@@ -196,7 +209,6 @@ export const playAudioWithPriority = async (
     return
   }
 
-  // Ensure audio context is ready before playing
   const contextReady = await ensureAudioContext()
   if (!contextReady) {
     console.error("AudioContext not ready, cannot play audio")
@@ -205,20 +217,26 @@ export const playAudioWithPriority = async (
 
   const newPriority = priorityOrder[priority]
 
+  // IMPROVED: Only interrupt if new audio has HIGHER priority (lower number)
   if (
     currentHowl?.playing() &&
-    currentPriority <= newPriority &&
+    currentPriority < newPriority && // Changed from <= to <
     currentHowl !== silentLoop
   ) {
     console.log(
-      `Audio already playing with higher priority (${currentPriority} vs ${newPriority})`,
+      `Audio already playing with higher priority (${currentPriority} vs ${newPriority}), queueing...`,
     )
+    // Queue the audio instead of discarding it
+    audioQueue.push({ path: audioPath, priority, volume })
     return
   }
 
+  // Stop current audio only if new one has higher priority
   if (currentHowl && currentHowl !== silentLoop) {
+    console.log(`Stopping current audio for higher priority: ${priority}`)
     currentHowl.stop()
     currentHowl.off("end")
+    currentHowl.off("playerror")
     currentHowl = null
   }
 
@@ -230,6 +248,7 @@ export const playAudioWithPriority = async (
       format: ["mp3"],
       onloaderror: (id, error) => {
         console.error(`Failed to load audio (${audioPath}):`, error)
+        processAudioQueue() // Try next in queue if this fails
       },
     })
   }
@@ -242,11 +261,16 @@ export const playAudioWithPriority = async (
 
   const playId = currentHowl.play()
 
+  // Clear any existing event listeners to prevent memory leaks
+  currentHowl.off("playerror")
+  currentHowl.off("end")
+
   currentHowl.once("playerror", (id, error) => {
     if (id === playId) {
       console.error(`Error playing audio (${audioPath}):`, error)
       currentHowl = null
       currentPriority = Infinity
+      processAudioQueue() // Try next in queue
     }
   })
 
@@ -254,6 +278,7 @@ export const playAudioWithPriority = async (
     console.log(`Audio finished: ${audioPath}`)
     currentHowl = null
     currentPriority = Infinity
+    processAudioQueue() // Play next in queue
   })
 }
 
@@ -271,6 +296,9 @@ export const cleanupAudio = (): void => {
     clearInterval(heartbeatInterval)
     heartbeatInterval = null
   }
+
+  // Clear audio queue
+  audioQueue = []
 
   // Stop and unload all cached audio
   Object.keys(audioCache).forEach((key) => {
@@ -299,7 +327,7 @@ export const cleanupAudio = (): void => {
   Howler.unload()
 }
 
-// Add visibility change handler to restart audio when tab becomes visible
+// Add visibility change handler
 export const handleVisibilityChange = async (): Promise<void> => {
   if (!document.hidden && isAudioEnabled) {
     console.log("Tab became visible, ensuring audio context...")
@@ -312,7 +340,6 @@ export const handleVisibilityChange = async (): Promise<void> => {
   }
 }
 
-// Initialize visibility change listener
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", handleVisibilityChange)
 }
